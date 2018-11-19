@@ -1,5 +1,6 @@
 import sys
-from Utility import read_args, search, prompt_search_result_selection, scrape_lyrics
+from requests.exceptions import ConnectionError
+from Utility import read_args, search, prompt_search_result_selection, scrape_song_lyrics, scrape_artist_lyrics
 
 
 USAGE_STR = 'usage: python Driver.py [--artist | --song | --album] <search_query> (--export <file_path>) (--duplicates)'
@@ -13,7 +14,8 @@ def main():
         print('This program requires at least 3 command line arguments.')
         print(USAGE_STR)
         sys.exit(1)
-
+    
+    # If the user did not enter a valid flagm terminate the program with exit code 1.
     if sys.argv[1] not in ALLOWED_MODE_FLAGS:
         print('`{}` is not a valid flag.'.format(sys.argv[1]))
         print(USAGE_STR)
@@ -25,15 +27,25 @@ def main():
         print('`{}` is not a valid flag.'.format(next(iter(invalid_args))))
         print(USAGE_STR)
         sys.exit(1)
+    
+    try:
+        config = read_args(sys.argv)
+        params = dict(q=config.query, w=config.search_by, p=1)
+        search_results = search(params)
+        result_index = prompt_search_result_selection(search_results) if len(search_results) > 1 else 0
+        selected_result = search_results[result_index]
 
-    config = read_args(sys.argv)
-    params = dict(q=config.query, w=config.search_by, p=1)
-    search_results = search(params)
-    result_index = prompt_search_result_selection(search_results) if len(search_results) > 1 else 0
-    selected_result = search_results[result_index]
-    scrape_lyrics(selected_result.link)
-
-    sys.exit(0)
+        if config.search_by == 'artists':
+            word_frequencies = scrape_artist_lyrics(selected_result.link)
+        elif config.search_by == 'songs':
+            word_frequencies = scrape_song_lyrics(selected_result.link)
+        elif config.search_by == 'album':
+            pass
+        print(word_frequencies)
+        sys.exit(0)
+    except ConnectionError as e:
+        print('{}: Connection aborted.'.format(e.__class__.__name__))
+        sys.exit(1)
 
 
 if __name__ == '__main__':

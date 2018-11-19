@@ -2,11 +2,14 @@ import requests
 from bs4 import BeautifulSoup
 from collections import Counter
 import re
+import time
+from random import randint
 from Configuration import Configuration
 from SearchResult import SearchResult
 
 
 AZLYRICS_SEARCH_URL = 'https://search.azlyrics.com/search.php'
+AZLYRICS_BASE_URL = 'https://www.azlyrics.com'
 
 
 class InvalidArgumentsError(Exception):
@@ -105,7 +108,7 @@ def prompt_search_result_selection(search_results):
     return int(user_input)-1
 
 
-def scrape_lyrics(song_url):
+def scrape_song_lyrics(song_url):
     page = requests.get(song_url)
     doc = BeautifulSoup(page.content, 'html.parser')
     div_container = doc.find('div', {'class': 'ringtone'}).findNext('div')
@@ -117,5 +120,22 @@ def scrape_lyrics(song_url):
     # Remove duplicate adjacent whitespace
     text = re.sub(r'\s+', ' ', text)
     words = [w.lower() if not re.search(r"^I('|$)", w) else w for w in text.split()]
-    c = Counter(words)
-    print(c.most_common())
+    return Counter(words)
+
+
+def scrape_artist_lyrics(artist_url):
+    page = requests.get(artist_url)
+    doc = BeautifulSoup(page.content, 'html.parser')
+    div_container = doc.find('div', {'id': 'listAlbum'})
+    song_elems = div_container.findAll('a', {'target': '_blank'})
+
+    word_frequencies = Counter()
+    for song in song_elems:
+        time.sleep(randint(3, 25)) # Wait a random amount of seconds
+        word_frequencies += scrape_song_lyrics(AZLYRICS_BASE_URL + song['href'][2:])
+    
+    return word_frequencies
+
+
+def scrape_album_lyrics(album_url):
+    pass
