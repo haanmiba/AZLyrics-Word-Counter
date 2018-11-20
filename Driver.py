@@ -1,6 +1,6 @@
 import sys
 from requests.exceptions import ConnectionError
-from Utility import read_args, search, prompt_search_result_selection, scrape_song_lyrics, scrape_artist_lyrics
+from Utility import read_args, search, prompt_search_result_selection, scrape_artist_lyrics, scrape_song_lyrics, scrape_album_lyrics
 
 
 USAGE_STR = 'usage: python Driver.py [--artist | --song | --album] <search_query> (--export <file_path>) (--duplicates)'
@@ -15,16 +15,16 @@ def main():
         print(USAGE_STR)
         sys.exit(1)
     
-    # If the user did not enter a valid flagm terminate the program with exit code 1.
+    # If the user did not enter a valid flag, terminate the program with exit code 1.
     if sys.argv[1] not in ALLOWED_MODE_FLAGS:
         print('`{}` is not a valid flag.'.format(sys.argv[1]))
         print(USAGE_STR)
         sys.exit(1)
 
     # Check if the user used an invalid flag. If so, terminate the program with exit code 1.
-    invalid_args = set(filter(lambda x: x.startswith('--'), sys.argv)) - ALLOWED_FLAGS
-    if invalid_args:
-        print('`{}` is not a valid flag.'.format(next(iter(invalid_args))))
+    invalid_flags = set(filter(lambda x: x.startswith('--'), sys.argv)) - ALLOWED_FLAGS
+    if invalid_flags:
+        print('`{}` is not a valid flag.'.format(next(iter(invalid_flags))))
         print(USAGE_STR)
         sys.exit(1)
     
@@ -39,9 +39,10 @@ def main():
             word_frequencies = scrape_artist_lyrics(selected_result.link)
         elif config.search_by == 'songs':
             word_frequencies = scrape_song_lyrics(selected_result.link)
-        elif config.search_by == 'album':
-            pass
-        print(word_frequencies)
+        elif config.search_by == 'albums':
+            word_frequencies = scrape_album_lyrics(selected_result.link)
+
+        print(word_frequencies.most_common())
         sys.exit(0)
     except ConnectionError as e:
         print('{}: Connection aborted.'.format(e.__class__.__name__))

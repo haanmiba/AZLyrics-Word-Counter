@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from collections import Counter
 import re
 import time
-from random import randint
+from random import randint, shuffle
 from Configuration import Configuration
 from SearchResult import SearchResult
 
@@ -32,10 +32,9 @@ def check_file_extension_exists(file_name):
 
     Raises
     ------
-    InvalidConfigFileValueError
+    InvalidArgumentsError
         if there is no file extension
     """
-
     if len(file_name.rsplit('.', 1)) < 2:
         raise InvalidArgumentsError('No file extension listed in export path `{}`'.format(file_name))
 
@@ -67,21 +66,28 @@ def read_args(args):
     return Configuration(mode_flag[2:], search_query_string, allow_duplicates, export, export_path, export_extension)
 
 
+def get_url_soup(url, params=None):
+    page = requests.get(url, params=params)
+    return BeautifulSoup(page.content, 'html.parser')
+
+
 def no_results(doc):
     return len(doc.xpath("//div[@class='alert']")) != 0
 
 
 def search(params):
-    page = requests.get(AZLYRICS_SEARCH_URL, params=params)
-    doc = BeautifulSoup(page.content, 'html.parser')
+    doc = get_url_soup(AZLYRICS_SEARCH_URL, params)
     if doc.findAll('div', {'class': 'alert'}):
         raise NoResultsError('No search results were found for the query: `{}`'.format(params['q']))
 
     search_results = []
     result_list = doc.findAll('td', {'class': 'text-left'})
     for result in result_list:
+        # Remove digit
         text = re.sub(r'^\d+.\s', '', result.text.strip())
+        # Isolate first line
         text = re.sub(r' +', ' ', text).split('\n')[0]
+        # Grab first link
         link = result.findAll('a')[0]['href']
         search_results.append(SearchResult(text, link))
 
@@ -109,8 +115,7 @@ def prompt_search_result_selection(search_results):
 
 
 def scrape_song_lyrics(song_url):
-    page = requests.get(song_url)
-    doc = BeautifulSoup(page.content, 'html.parser')
+    doc = get_url_soup(song_url)
     div_container = doc.find('div', {'class': 'ringtone'}).findNext('div')
     text = div_container.text
     # Remove all text between brackets
@@ -124,10 +129,10 @@ def scrape_song_lyrics(song_url):
 
 
 def scrape_artist_lyrics(artist_url):
-    page = requests.get(artist_url)
-    doc = BeautifulSoup(page.content, 'html.parser')
+    doc = get_url_soup(artist_url)
     div_container = doc.find('div', {'id': 'listAlbum'})
     song_elems = div_container.findAll('a', {'target': '_blank'})
+    shuffle(song_elems)
 
     word_frequencies = Counter()
     for song in song_elems:
@@ -138,4 +143,29 @@ def scrape_artist_lyrics(artist_url):
 
 
 def scrape_album_lyrics(album_url):
-    pass
+    artist_url, album_id = album_url.split('#')
+    doc = get_url_soup(artist_url)
+
+    div_container = doc.find('div', {'id': 'listAlbum'})
+    div_child_elems = div_container.find_all(recursive=False)
+
+    entered = False
+    div_count = 0
+    song_elems = []
+    for elem in div_child_elems:
+        if elem.has_attr('id') and elem['id'] == album_id:
+            entered = True
+        if entered:
+            if elem.name == 'div':
+                div_count += 1
+            if elem.has_attr('target') and elem['target'] == '_blank':
+                song_elems.append(elem)
+        if div_count == 2:
+            break
+    
+    shuffle(song_elems)
+    word_frequencies = Counter()
+    for song in song_elems:
+        time.sleep(randint(3, 25)) # Wait a random amount of seconds
+        word_frequencies += scrape_song_lyrics(AZLYRICS_BASE_URL + song['href'][2:])
+    return word_frequencies
