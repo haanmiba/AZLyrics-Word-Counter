@@ -4,8 +4,8 @@ from Utility import read_args, search, prompt_search_result_selection, scrape_ar
 
 
 USAGE_STR = 'usage: python Driver.py [--artist | --song | --album] <search_query> (--export <file_path>) (--duplicates)'
-ALLOWED_FLAGS = {'--artists', '--songs', '--albums', '--export', '--duplicates'}
 ALLOWED_MODE_FLAGS = {'--artists', '--songs', '--albums'}
+ALLOWED_FLAGS = ALLOWED_MODE_FLAGS + {'--export', '--duplicates'}
 
 
 def main():
