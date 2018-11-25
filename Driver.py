@@ -1,11 +1,12 @@
 import sys
+import csv
 from requests.exceptions import ConnectionError
 from Utility import read_args, search, prompt_search_result_selection, scrape_artist_lyrics, scrape_song_lyrics, scrape_album_lyrics
 
 
 USAGE_STR = 'usage: python Driver.py [--artist | --song | --album] <search_query> (--export <file_path>) (--duplicates)'
 ALLOWED_MODE_FLAGS = {'--artists', '--songs', '--albums'}
-ALLOWED_FLAGS = ALLOWED_MODE_FLAGS + {'--export', '--duplicates'}
+ALLOWED_FLAGS = ALLOWED_MODE_FLAGS.union({'--export', '--duplicates'})
 
 
 def main():
@@ -41,8 +42,14 @@ def main():
             word_frequencies = scrape_song_lyrics(selected_result.link)
         elif config.search_by == 'albums':
             word_frequencies = scrape_album_lyrics(selected_result.link)
+        
+        if config.export:
+            with open(config.export_path, 'w', newline="") as csvfile:
+                csv_writer = csv.writer(csvfile, delimiter=",", quotechar='"')
+                csv_writer.writerow(['Word', 'Frequency'])
+                for word, frequency in word_frequencies.most_common():
+                    csv_writer.writerow([word, frequency])
 
-        print(word_frequencies.most_common())
         sys.exit(0)
     except ConnectionError as e:
         print('{}: Connection aborted.'.format(e.__class__.__name__))
