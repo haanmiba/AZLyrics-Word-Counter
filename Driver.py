@@ -1,4 +1,5 @@
 import sys
+import os
 import csv
 from requests.exceptions import ConnectionError
 from Utility import read_args, search, prompt_search_result_selection, scrape_artist_lyrics, scrape_song_lyrics, scrape_album_lyrics
@@ -43,6 +44,8 @@ def main():
         elif config.search_by == 'albums':
             word_frequencies = scrape_album_lyrics(selected_result.link)
         
+        # If the directories along the export file path does not exist, create them
+        os.makedirs(os.path.dirname(config.export_path), exist_ok=True)
         if config.export:
             with open(config.export_path, 'w', newline="") as csvfile:
                 csv_writer = csv.writer(csvfile, delimiter=",", quotechar='"')
