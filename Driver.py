@@ -2,10 +2,11 @@ import sys
 import os
 import csv
 from requests.exceptions import ConnectionError
-from Utility import read_args, search, prompt_search_result_selection, scrape_artist_lyrics, scrape_song_lyrics, scrape_album_lyrics
+from Utility import (read_args, search, prompt_search_result_selection, scrape_artist_lyrics, scrape_song_lyrics,
+                    scrape_album_lyrics, InvalidArgumentsError, NoResultsError, export_word_frequencies_to_csv)
 
 
-USAGE_STR = 'usage: python Driver.py [--artist | --song | --album] <search_query> (--export <file_path>) (--duplicates)'
+USAGE_STR = 'usage: python Driver.py [--artists | --songs | --albums] <search_query> (--export <file_path>) (--duplicates)'
 ALLOWED_MODE_FLAGS = {'--artists', '--songs', '--albums'}
 ALLOWED_FLAGS = ALLOWED_MODE_FLAGS.union({'--export', '--duplicates'})
 
@@ -45,17 +46,15 @@ def main():
             word_frequencies = scrape_album_lyrics(selected_result.link)
         
         # If the directories along the export file path does not exist, create them
-        os.makedirs(os.path.dirname(config.export_path), exist_ok=True)
         if config.export:
-            with open(config.export_path, 'w', newline="") as csvfile:
-                csv_writer = csv.writer(csvfile, delimiter=",", quotechar='"')
-                csv_writer.writerow(['Word', 'Frequency'])
-                for word, frequency in word_frequencies.most_common():
-                    csv_writer.writerow([word, frequency])
+            export_word_frequencies_to_csv(word_frequencies, config.export_path)
 
         sys.exit(0)
     except ConnectionError as e:
         print('{}: Connection aborted.'.format(e.__class__.__name__))
+        sys.exit(1)
+    except (InvalidArgumentsError, NoResultsError) as e:
+        print('{}: {}'.format(e.__class__.__name__, str(e)))
         sys.exit(1)
 
 

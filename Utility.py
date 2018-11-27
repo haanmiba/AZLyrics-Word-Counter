@@ -1,8 +1,10 @@
 import requests
-from bs4 import BeautifulSoup
-from collections import Counter
 import re
 import time
+import os
+import csv
+from bs4 import BeautifulSoup
+from collections import Counter
 from random import randint, shuffle
 from Configuration import Configuration
 from SearchResult import SearchResult
@@ -169,3 +171,13 @@ def scrape_album_lyrics(album_url):
         time.sleep(randint(3, 25)) # Wait a random amount of seconds
         word_frequencies += scrape_song_lyrics(AZLYRICS_BASE_URL + song['href'][2:])
     return word_frequencies
+
+
+def export_word_frequencies_to_csv(word_frequencies, export_path):
+    if os.path.dirname(export_path):
+        os.makedirs(os.path.dirname(export_path), exist_ok=True)
+    with open(export_path, 'w', newline="") as csvfile:
+        csv_writer = csv.writer(csvfile, delimiter=",", quotechar='"')
+        csv_writer.writerow(['Word', 'Frequency'])
+        for word, frequency in word_frequencies.most_common():
+            csv_writer.writerow([word, frequency])
