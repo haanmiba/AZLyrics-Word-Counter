@@ -46,6 +46,8 @@ def read_args(args):
     mode_flag_idx = args.index(mode_flag)
     export = '--export' in args
     export_flag_idx = args.index('--export') if export else None
+    print_frequencies = '--print' in args
+    print_flag_idx = args.index('--print') if print_frequencies else None
 
     if export:
         if export_flag_idx < mode_flag_idx:
@@ -58,14 +60,22 @@ def read_args(args):
         if export_flag_idx == len(args)-1:
             raise InvalidArgumentsError('`--export` must have the <file_path> listed after it.')
 
-    search_query_string = ' '.join(args[mode_flag_idx+1:export_flag_idx])
-    allow_duplicates = '--duplicates' in args
     export_path = args[export_flag_idx+1] if export else None
     if export_path:
         check_file_extension_exists(export_path)
     export_extension = export_path.rsplit('.', 1)[-1].lower() if export_path else None
 
-    return Configuration(mode_flag[2:], search_query_string, allow_duplicates, export, export_path, export_extension)
+    next_flag_idx = None
+    if export_flag_idx and print_frequencies:
+        next_flag_idx = min(export_flag_idx, print_flag_idx)
+    elif export_flag_idx:
+        next_flag_idx = export_flag_idx
+    elif print_flag_idx:
+        next_flag_idx = print_flag_idx
+
+    search_query_string = ' '.join(args[mode_flag_idx+1:next_flag_idx])
+
+    return Configuration(mode_flag[2:], search_query_string, export, export_path, export_extension, print_frequencies)
 
 
 def get_url_soup(url, params=None):
@@ -181,3 +191,11 @@ def export_word_frequencies_to_csv(word_frequencies, export_path):
         csv_writer.writerow(['Word', 'Frequency'])
         for word, frequency in word_frequencies.most_common():
             csv_writer.writerow([word, frequency])
+
+
+def print_word_frequencies(word_frequencies):
+    print('----------------')
+    print('Word Frequencies')
+    print('----------------')
+    for word, frequency in word_frequencies.most_common():
+        print('{:<{fill}} {}'.format(word + ':', frequency, fill=max(map(len, word_frequencies.keys()))+1))
