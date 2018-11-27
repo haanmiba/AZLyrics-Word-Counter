@@ -3,12 +3,12 @@ import os
 import csv
 from requests.exceptions import ConnectionError
 from Utility import (read_args, search, prompt_search_result_selection, scrape_artist_lyrics, scrape_song_lyrics,
-                    scrape_album_lyrics, InvalidArgumentsError, NoResultsError, export_word_frequencies_to_csv)
+                    scrape_album_lyrics, InvalidArgumentsError, NoResultsError, export_word_frequencies_to_csv, print_word_frequencies)
 
 
-USAGE_STR = 'usage: python Driver.py [--artists | --songs | --albums] <search_query> (--export <file_path>) (--duplicates)'
+USAGE_STR = 'usage: python Driver.py [--artists | --songs | --albums] <search_query> (--export <file_path>) (--print)'
 ALLOWED_MODE_FLAGS = {'--artists', '--songs', '--albums'}
-ALLOWED_FLAGS = ALLOWED_MODE_FLAGS.union({'--export', '--duplicates'})
+ALLOWED_FLAGS = ALLOWED_MODE_FLAGS.union({'--export', '--print'})
 
 
 def main():
@@ -48,6 +48,9 @@ def main():
         # If the directories along the export file path does not exist, create them
         if config.export:
             export_word_frequencies_to_csv(word_frequencies, config.export_path)
+        
+        if config.print_frequencies:
+            print_word_frequencies(word_frequencies)
 
         sys.exit(0)
     except ConnectionError as e:
