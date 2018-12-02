@@ -37,11 +37,31 @@ def check_file_extension_exists(file_name):
     InvalidArgumentsError
         if there is no file extension
     """
+
     if len(file_name.rsplit('.', 1)) < 2:
         raise InvalidArgumentsError('No file extension listed in export path `{}`'.format(file_name))
 
 
 def read_args(args):
+    """Takes command line arguments and converts them into the configuration for this program.
+
+    Parameters
+    ----------
+    args : list(str,)
+        A list of command line arguments
+    
+    Returns
+    -------
+    Configuration
+        The configuration settings for this program's execution
+    
+    Throws
+    ------
+    InvalidArgumentsError
+        If any of the command line arguments are invalid
+    """
+
+    # Extract information from the command line arguments
     mode_flag = args[1]
     mode_flag_idx = args.index(mode_flag)
     export = '--export' in args
@@ -49,22 +69,29 @@ def read_args(args):
     print_frequencies = '--print' in args
     print_flag_idx = args.index('--print') if print_frequencies else None
 
+    # Validate the user's command line arguments if they are exporting the data
     if export:
+
+        # If they are exporting and the export flag comes before the mode flag, throw an InvalidArguentsError
         if export_flag_idx < mode_flag_idx:
             raise InvalidArgumentsError('`--export` must come after `{}`'.format(mode_flag))
 
+        # If the export flag comes right after the mode flag, that means there were no search queries, throw an InvalidArgumentsError
         if export_flag_idx == mode_flag_idx+1:
             raise InvalidArgumentsError('`--export` cannot come right after `{}`. Should have search query between.'
                                         .format(mode_flag))
 
+        # If the export flag is at the end of the command line arguments, that means the user did not enter the export path, throw an InvalidArgumentsError
         if export_flag_idx == len(args)-1:
             raise InvalidArgumentsError('`--export` must have the <file_path> listed after it.')
 
     export_path = args[export_flag_idx+1] if export else None
+    # Check if the export file path has an extension
     if export_path:
         check_file_extension_exists(export_path)
     export_extension = export_path.rsplit('.', 1)[-1].lower() if export_path else None
 
+    # Retrieve the search query string
     next_flag_idx = None
     if export_flag_idx and print_frequencies:
         next_flag_idx = min(export_flag_idx, print_flag_idx)
@@ -72,7 +99,6 @@ def read_args(args):
         next_flag_idx = export_flag_idx
     elif print_flag_idx:
         next_flag_idx = print_flag_idx
-
     search_query_string = ' '.join(args[mode_flag_idx+1:next_flag_idx])
 
     return Configuration(mode_flag[2:], search_query_string, export, export_path, export_extension, print_frequencies)
