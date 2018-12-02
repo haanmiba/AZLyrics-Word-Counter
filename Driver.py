@@ -2,8 +2,10 @@ import sys
 import os
 import csv
 from requests.exceptions import ConnectionError
-from Utility import (read_args, search, prompt_search_result_selection, scrape_artist_lyrics, scrape_song_lyrics,
-                    scrape_album_lyrics, InvalidArgumentsError, NoResultsError, export_word_frequencies_to_csv, print_word_frequencies)
+from Utility import (read_args, search, prompt_search_result_selection, 
+                    scrape_artist_lyrics, scrape_song_lyrics, scrape_album_lyrics,
+                    InvalidArgumentsError, NoResultsError, export_word_frequencies_to_csv,
+                    print_word_frequencies)
 
 
 USAGE_STR = 'usage: python Driver.py [--artists | --songs | --albums] <search_query> (--export <file_path>) (--print)'
@@ -45,7 +47,6 @@ def main():
         elif config.search_by == 'albums':
             word_frequencies = scrape_album_lyrics(selected_result.link)
         
-        # If the directories along the export file path does not exist, create them
         if config.export:
             export_word_frequencies_to_csv(word_frequencies, config.export_path)
         
