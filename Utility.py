@@ -105,19 +105,63 @@ def read_args(args):
 
 
 def get_url_soup(url, params=None):
+    """Makes a GET request to a URL and returns that URL parsed through the BeautifulSoup module.
+
+    Parameters
+    ----------
+    url : str
+        The url to make the request to
+    params : dict, optional (default=None)
+        A dictionary of parameters to be put into the GET request
+    
+    Returns
+    -------
+    BeautifulSoup
+        The page's HTML contents parsed through the BeautifulSoup module
+    """
+
     page = requests.get(url, params=params)
     return BeautifulSoup(page.content, 'html.parser')
 
 
 def no_results(doc):
-    return len(doc.xpath("//div[@class='alert']")) != 0
+    """Verifies whether there are any search results on an AZLyrics query.
+
+    Returns
+    -------
+    bool
+        True if there are no results
+        False otherwise
+    """
+
+    return len(doc.findAll('div', {'class': 'alert'})) != 0
 
 
 def search(params):
+    """Performs a search query on AZLyrics and scrapes the search results.
+
+    Parameters
+    ----------
+    params : str
+        Parameters for the search query
+    
+    Returns
+    -------
+    list(SearchResult,)
+        A list of search results returned from AZLyrics
+    
+    Raises
+    ------
+    NoResultsError
+        If there were no search results returned
+    """
+
+    # Get the search result's BeautifulSoup and see if it has any search results
     doc = get_url_soup(AZLYRICS_SEARCH_URL, params)
-    if doc.findAll('div', {'class': 'alert'}):
+    if no_results(doc):
         raise NoResultsError('No search results were found for the query: `{}`'.format(params['q']))
 
+    # Compile all of the search results into a list of SearchResult instances
     search_results = []
     result_list = doc.findAll('td', {'class': 'text-left'})
     for result in result_list:
@@ -133,12 +177,34 @@ def search(params):
 
 
 def print_search_results(search_results):
+    """Print out the search results as an ordered list.
+
+    Parameters
+    ----------
+    search_results : list(SearchResult,)
+        A list of SearchResult instances to print out
+    """
+
     print('Search Results:')
     for i in range(1, len(search_results)+1):
         print('{}.\t{}'.format(i, search_results[i-1].text))
 
 
 def prompt_search_result_selection(search_results):
+    """When there are multiple search results to choose from, prompt the user to select from them.
+
+    Parameters
+    ----------
+    search_results : list(SearchResult,)
+        A list of SearchResult instances for the user to choose from
+    
+    Returns
+    -------
+    int
+        The index of the search result the user has selected
+    """
+
+    # Prompt user to keep entering input long as the input is invalid or the user has not submitted anything
     user_input = None
     while not user_input or not str(user_input).isnumeric() or not int(user_input) in range(1, len(search_results)+1):
         print_search_results(search_results)
@@ -153,6 +219,19 @@ def prompt_search_result_selection(search_results):
 
 
 def scrape_song_lyrics(song_url):
+    """Scrape the song lyrics from a song's page.
+
+    Parameters
+    ----------
+    song_url : str
+        The URL to a song page
+
+    Returns
+    -------
+    Counter
+        A count of the words that occur in the lyrics
+    """
+
     doc = get_url_soup(song_url)
     div_container = doc.find('div', {'class': 'ringtone'}).findNext('div')
     text = div_container.text
@@ -167,6 +246,19 @@ def scrape_song_lyrics(song_url):
 
 
 def scrape_artist_lyrics(artist_url):
+    """Scrape the lyrics of all songs on an artist's page.
+
+    Parameters
+    ----------
+    artist_url : str
+        The URL to an artist's page
+    
+    Returns
+    -------
+    Counter
+        A count of the words that occur for all the song lyrics
+    """
+
     doc = get_url_soup(artist_url)
     div_container = doc.find('div', {'id': 'listAlbum'})
     song_elems = div_container.findAll('a', {'target': '_blank'})
@@ -181,6 +273,19 @@ def scrape_artist_lyrics(artist_url):
 
 
 def scrape_album_lyrics(album_url):
+    """Scrape lyrics from an album
+
+    Parameters
+    ----------
+    album_url : str
+        The URL to an album. Note: The album's URL is simply a section within an artist's page
+    
+    Returns
+    -------
+    Counter
+        A count of all the words that occur for htis album
+    """
+
     artist_url, album_id = album_url.split('#')
     doc = get_url_soup(artist_url)
 
@@ -210,6 +315,16 @@ def scrape_album_lyrics(album_url):
 
 
 def export_word_frequencies_to_csv(word_frequencies, export_path):
+    """Exports the word frequencies to a CSV file.
+
+    Parameters
+    ----------
+    word_frequencies : Counter
+        A Counter instance of all words that occur within lyrics
+    export_path : str
+        The file path to the CSV file to export the Counter's data to
+    """
+
     if os.path.dirname(export_path):
         os.makedirs(os.path.dirname(export_path), exist_ok=True)
     with open(export_path, 'w', newline="") as csvfile:
@@ -220,6 +335,14 @@ def export_word_frequencies_to_csv(word_frequencies, export_path):
 
 
 def print_word_frequencies(word_frequencies):
+    """Prints word frequencies from most occuring words to least
+
+    Parameters
+    ----------
+    word_frequencies : Counter
+        The Counter instance keeping track of all of the words that occur and their frequencies
+    """
+    
     print('----------------')
     print('Word Frequencies')
     print('----------------')
