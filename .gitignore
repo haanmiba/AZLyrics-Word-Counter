@@ -3,5 +3,5 @@
 .vscode
 __init__.py
 __pycache__
-*.csv
 data
+my_data
